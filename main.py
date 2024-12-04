@@ -1,9 +1,11 @@
 import asyncio
 import ctypes
+import os
 import random
 import sys
 import traceback
 
+import aiohttp
 from art import text2art
 from imap_tools import MailboxLoginError
 from termcolor import colored, cprint
@@ -18,7 +20,8 @@ from core.utils.exception import EmailApproveLinkNotFoundException, LoginExcepti
 from core.utils.generate.person import Person
 from data.config import ACCOUNTS_FILE_PATH, PROXIES_FILE_PATH, REGISTER_ACCOUNT_ONLY, THREADS, REGISTER_DELAY, \
     CLAIM_REWARDS_ONLY, APPROVE_EMAIL, APPROVE_WALLET_ON_EMAIL, MINING_MODE, CONNECT_WALLET, \
-    WALLETS_FILE_PATH, SEND_WALLET_APPROVE_LINK_TO_EMAIL, SINGLE_IMAP_ACCOUNT, SEMI_AUTOMATIC_APPROVE_LINK
+    WALLETS_FILE_PATH, SEND_WALLET_APPROVE_LINK_TO_EMAIL, SINGLE_IMAP_ACCOUNT, SEMI_AUTOMATIC_APPROVE_LINK, \
+    PROXY_DB_PATH
 
 
 def bot_info(name: str = ""):
@@ -36,7 +39,7 @@ def bot_info(name: str = ""):
 async def worker_task(_id, account: str, proxy: str = None, wallet: str = None, db: AccountsDB = None):
     consumables = account.split(":")[:3]
     imap_pass = None
-    
+
     if SINGLE_IMAP_ACCOUNT:
         consumables.append(SINGLE_IMAP_ACCOUNT.split(":")[1])
 
@@ -107,11 +110,14 @@ async def worker_task(_id, account: str, proxy: str = None, wallet: str = None, 
     #     logger.warning(e)
     except EmailApproveLinkNotFoundException as e:
         logger.warning(e)
+    except aiohttp.ClientError as e:
+        logger.warning(f"{_id} | Some connection error: {e}...")
     except Exception as e:
         logger.error(f"{_id} | not handled exception | error: {e} {traceback.format_exc()}")
     finally:
         if grass:
             await grass.session.close()
+            # await grass.ws_session.close()
 
 
 async def main():
@@ -123,7 +129,11 @@ async def main():
 
     proxies = [Proxy.from_str(proxy).as_url for proxy in file_to_list(PROXIES_FILE_PATH)]
 
-    db = AccountsDB('data/proxies_stats.db')
+    #### delete DB if it exists to clean up
+    if os.path.exists(PROXY_DB_PATH):
+        os.remove(PROXY_DB_PATH)
+
+    db = AccountsDB(PROXY_DB_PATH)
     await db.connect()
 
     for i, account in enumerate(accounts):
@@ -141,7 +151,7 @@ async def main():
     autoreger = AutoReger.get_accounts(
         (ACCOUNTS_FILE_PATH, PROXIES_FILE_PATH, WALLETS_FILE_PATH),
         with_id=True,
-        static_extra=(db, )
+        static_extra=(db,)
     )
 
     threads = THREADS
@@ -157,6 +167,11 @@ async def main():
             elif len(wallets) != len(accounts):
                 logger.error("Wallets count != accounts count")
                 return
+        elif len(accounts[0].split(":")) != 3:
+            logger.error(
+                "For __APPROVE__ mode: Need to provide email, password and imap password - email:password:imap_password")
+            return
+
         msg = "__APPROVE__ MODE"
     elif CLAIM_REWARDS_ONLY:
         msg = "__CLAIM__ MODE"
@@ -179,5 +194,5 @@ if __name__ == "__main__":
         loop = asyncio.ProactorEventLoop()
         asyncio.set_event_loop(loop)
         loop.run_until_complete(main())
-    else:
-        asyncio.run(main())
+
+    asyncio.run(main())

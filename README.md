@@ -27,8 +27,8 @@ Also you can use for free [Nodepay+ bot](https://github.com/MsLolita/Nodepay_plu
 
 > You can put as many proxies as u can, bot uses database and will load up proxies from extra ones
 
-🔹**To say thanks for work: 0x000007c73a94f8582ef95396918dcd04f806cdd8**
 
+To hang several connections on 1 account, you just need to duplicate it in the accounts.txt.
 
 ## Quick Start 📚
    1. To install libraries on Windows click on `INSTALL.bat` (or in console: `pip install -r requirements.txt`).
@@ -87,4 +87,80 @@ Also you can use for free [Nodepay+ bot](https://github.com/MsLolita/Nodepay_plu
    5. Start Container: `docker-compose up -d`
 
    PS: Could see more configuration in `docker-compose.yml`
+
+
+## Extra guide from user 
+
+### 1. Setting Up Data Files
+
+**accounts.txt** — Format for entries is: `email:password:password`
+
+Example: `enjoyer@gmail.com:qwert123:qwert123`  
+The first password is for logging into the Grass service, and the second one is for the email.  
+If you have a batch of emails with the same password, use the same password twice.
+
+**wallets.txt** — Enter Solana private keys in Base58 format:
+
+A generator can be found at this link: [Create Solana Wallet](https://ct.app/createWallet/sol).
+
+**proxies.txt** — Use HTTP proxies in the format `login:pass@ip:port`.
+
+---
+
+### 2. Configuration for Account Registration
+
+To register new accounts, use the following settings:
+
+```plaintext
+REGISTER_ACCOUNT_ONLY = True
+MINING_MODE = False
+```
+
+**Saving registered account information:**  
+Successfully registered accounts are saved in `\logs\new_accounts.txt` in the format: `email:password:nickname`.
+
+Additional result files:  
+- `\logs\failed.txt` — failed registrations.  
+- `\logs\success.txt` — successful registrations.
+
+---
+
+### 3. Configuring Email Verification and Wallet Connection
+
+For email verification and wallet connection, use these settings:
+
+```plaintext
+APPROVE_EMAIL = True
+CONNECT_WALLET = True
+SEND_WALLET_APPROVE_LINK_TO_EMAIL = True
+APPROVE_WALLET_ON_EMAIL = True
+----
+REGISTER_ACCOUNT_ONLY = False
+MINING_MODE = False
+```
+
+**Note:** These settings will send a wallet confirmation link to the email and complete the registration.
+
+---
+
+### 4. Mining Mode
+
+To enable mining mode, use the following settings:
+
+```plaintext
+APPROVE_EMAIL = False
+CONNECT_WALLET = False
+SEND_WALLET_APPROVE_LINK_TO_EMAIL = False
+APPROVE_WALLET_ON_EMAIL = False
+----
+REGISTER_ACCOUNT_ONLY = False
+MINING_MODE = True
+```
+
+---
+
+### 5. Captcha Solving
+
+To register accounts, a captcha-solving service is required.  
+Captcha is not required in mining mode.
 
